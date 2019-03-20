@@ -26,7 +26,8 @@ public class FPSInput : MonoBehaviour
     public PrinceAction princeAction;
 
     public float speed = 6.0f;
-    private float jumpForce = 45.0f;
+    private float jumpForceY = 55.0f;
+    private float jumpForceX = 1.0f;
     private float gravityJump = 6.0f;
     private float yAxis = -1.0f;
 
@@ -35,6 +36,12 @@ public class FPSInput : MonoBehaviour
     private CharacterController characterController;
     private Animator _animator;
     private Transform _transform;
+
+    //timer
+    private bool isMoving;
+    private float m_Time_Running = 0f;
+    private float m_Time_Idle = 0f;
+
 
     private void Awake()
     {
@@ -52,16 +59,22 @@ public class FPSInput : MonoBehaviour
 
     private void FixedUpdate()
     {
-
         if (characterController.isGrounded)
         {
-            if (Input.GetKeyDown(KeyCode.Space))
+            if (Input.GetKeyDown(KeyCode.Space) && princeAction == PrinceAction.IDLE)
             {
-                yAxis = jumpForce * Time.deltaTime;
+                yAxis = jumpForceY * Time.deltaTime;
+                _animator.SetTrigger("Idle_Jumping");
+            }
+            else if (Input.GetKeyDown(KeyCode.Space) && princeAction == PrinceAction.RUNNING)
+            {
+                jumpForceX = 0.5f;
+                yAxis = (jumpForceY + 2) * Time.deltaTime;
                 _animator.SetTrigger("Jumping");
             }
             else
             {
+                jumpForceX = 1f;
                 yAxis = -1f;
             }
         }
@@ -70,7 +83,7 @@ public class FPSInput : MonoBehaviour
             yAxis -= gravityJump * Time.deltaTime;
         }
 
-        var dir = new Vector3(-Input.GetAxis("Horizontal"), yAxis, 0f);
+        var dir = new Vector3(-Input.GetAxis("Horizontal") * jumpForceX, yAxis, 0f);
         characterController.Move(dir * speed * Time.deltaTime);
 
     }
@@ -78,26 +91,6 @@ public class FPSInput : MonoBehaviour
     // Update is called once per frame
     void Update()
     {
-        //var dir = new Vector3(-Input.GetAxis("Horizontal"), yAxis, 0f);
-        //characterController.Move(dir * speed * Time.deltaTime);
-        Debug.Log(yAxis + "LOH");
-
-        //Vector3 direction = new Vector3(-Input.GetAxis("Horizontal"), yAxis, 0f);
-        //characterController.Move(direction * speed * Time.deltaTime);
-
-        //Debug.Log("LOH" + direction);
-
-        ////if (Input.GetAxis("Horizontal") > 0 && !isFacingRight)
-        ////{
-        ////    Turn();
-        ////}
-        ////else if (Input.GetAxis("Horizontal") < 0 && isFacingRight)
-        ////{
-        ////    Turn();
-        ////}
-
-        //_animator.SetFloat("InputX", Input.GetAxis("Horizontal"));
-        //_animator.SetFloat("InputY", Input.GetAxis("Vertical"));
 
         if (Mathf.Abs(Input.GetAxis("Horizontal")) > 0)
         {
@@ -152,6 +145,17 @@ public class FPSInput : MonoBehaviour
 
         }
 
+        //timer
+        if (Mathf.Abs(Input.GetAxis("Horizontal")) > 0)
+        {
+            m_Time_Running += Time.deltaTime;
+        }
+
+        //timer
+        if (Mathf.Abs(Input.GetAxis("Horizontal")) == 0)
+        {
+            m_Time_Idle += Time.deltaTime;
+        }
     }
 
     private void Idle()
@@ -177,30 +181,6 @@ public class FPSInput : MonoBehaviour
     private void JumpIdle()
     {
         princeAction = PrinceAction.IDLE_JUMPING;
-        //if (princeAction == PrinceAction.IDLE)
-        //{
-        //    if (characterController.isGrounded)
-        //    {
-        //        if (Input.GetKeyDown(KeyCode.Space))
-        //        {
-        //            yAxis = jumpForce * Time.deltaTime;
-        //            princeAction = PrinceAction.IDLE_JUMPING;
-        //        }
-        //        else
-        //        {
-        //            yAxis = -1f;
-        //        }
-        //    }
-        //    else
-        //    {
-        //        yAxis -= gravityJump * Time.deltaTime;
-        //    }
-
-        //    var dir = new Vector3(-Input.GetAxis("Horizontal"), yAxis, 0f);
-        //    characterController.Move(dir * speed * Time.deltaTime);
-
-        //}
-
     }
 
     private void Run()
@@ -222,19 +202,37 @@ public class FPSInput : MonoBehaviour
 
     private void Turn()
     {
+
+        if (m_Time_Idle > 3f)
+        {
+            m_Time_Running = 0;
+        }
+
+        if (m_Time_Running > 0.3f)
+        {
+            _animator.SetTrigger("Turn");
+            m_Time_Running = 0;
+        }
+
+        m_Time_Idle = 0;
+
         isFacingRight = !isFacingRight;
         _animator.transform.Rotate(0, 180, 0);
 
-        if (princeAction == PrinceAction.RUNNING)
-        {
-            _animator.SetTrigger("Turn");
-        }
-
     }
 
-    private void Turn180()
+    private void OnTriggerEnter(Collider other)
     {
-
+        if (other.tag == "Floor")
+        {
+            Debug.Log("DABUDI DABUDAI");
+            //_animator.SetTrigger("Climb");
+            //Vector3 climbPos = transform.position;
+            //GetComponent<Rigidbody>().useGravity = false;
+            var dir = new Vector3(0.2f, 5.44f, 0f);
+            characterController.Move(dir);
+        }
     }
+
 }
 

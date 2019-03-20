@@ -1,5 +1,5 @@
 fileFormatVersion: 2
-guid: 9b79116376755a74d94013128c39fc10
+guid: 29e1a73899aaac240a330ccd47801ea7
 ModelImporter:
   serializedVersion: 23
   fileIDToRecycleName:
@@ -157,7 +157,7 @@ ModelImporter:
     4300006: Hair
     4300008: Tops
     4300010: Bottoms
-    7400000: Jump 1
+    7400000: Freehang Climb (1)
     9500000: //RootNode
     13700000: Body
     13700002: Bottoms
@@ -165,12 +165,32 @@ ModelImporter:
     13700006: Eyes
     13700008: Hair
     13700010: Tops
-  externalObjects: {}
+  externalObjects:
+  - first:
+      type: UnityEngine:Material
+      assembly: UnityEngine.CoreModule
+      name: Bodymat
+    second: {fileID: 2100000, guid: 6012dd0a07c3b0d448c4386f4f928542, type: 2}
+  - first:
+      type: UnityEngine:Material
+      assembly: UnityEngine.CoreModule
+      name: Bottommat
+    second: {fileID: 2100000, guid: 0a528c8c9c653cc4c90c1407a62226cb, type: 2}
+  - first:
+      type: UnityEngine:Material
+      assembly: UnityEngine.CoreModule
+      name: Hairmat
+    second: {fileID: 2100000, guid: 906b9e3c4efa5024794b078127c45b73, type: 2}
+  - first:
+      type: UnityEngine:Material
+      assembly: UnityEngine.CoreModule
+      name: Topmat
+    second: {fileID: 2100000, guid: a7aef3ea0080f6a4d9040fd12730901f, type: 2}
   materials:
     importMaterials: 1
     materialName: 0
     materialSearch: 1
-    materialLocation: 1
+    materialLocation: 0
   animations:
     legacyGenerateAnimations: 4
     bakeSimulation: 0
@@ -185,7 +205,7 @@ ModelImporter:
     animationDoRetargetingWarnings: 0
     importAnimatedCustomProperties: 0
     importConstraints: 0
-    animationCompression: 1
+    animationCompression: 3
     animationRotationError: 0.5
     animationPositionError: 0.5
     animationScaleError: 0.5
@@ -194,10 +214,10 @@ ModelImporter:
     extraUserProperties: []
     clipAnimations:
     - serializedVersion: 16
-      name: Jump 1
+      name: Freehang Climb (1)
       takeName: mixamo.com
       firstFrame: 0
-      lastFrame: 30
+      lastFrame: 116
       wrapMode: 0
       orientationOffsetY: 0
       level: 0
@@ -1048,7 +1068,7 @@ ModelImporter:
     hasTranslationDoF: 0
     hasExtraRoot: 1
     skeletonHasParents: 1
-  lastHumanDescriptionAvatarSource: {fileID: 9000000, guid: 5414b298e8f71ec4b9845b90051e32c8,
+  lastHumanDescriptionAvatarSource: {fileID: 9000000, guid: baa624edc0f8af44096c9139e985a0ac,
     type: 3}
   animationType: 3
   humanoidOversampling: 1
