@@ -42,6 +42,9 @@ public class FPSInput : MonoBehaviour
     private float m_Time_Running = 0f;
     private float m_Time_Idle = 0f;
 
+    //climbing
+    public bool ableToClimb;
+    public bool isClimbing;
 
     private void Awake()
     {
@@ -61,11 +64,22 @@ public class FPSInput : MonoBehaviour
     {
         if (characterController.isGrounded)
         {
+            //Прыжок с места
             if (Input.GetKeyDown(KeyCode.Space) && princeAction == PrinceAction.IDLE)
             {
                 yAxis = jumpForceY * Time.deltaTime;
-                _animator.SetTrigger("Idle_Jumping");
+                if (ableToClimb)
+                {
+                    isClimbing = true;
+                    _animator.SetTrigger("Climb");
+                }
+                else
+                {
+                    jumpForceX = 1f;
+                    _animator.SetTrigger("Idle_Jumping");
+                }
             }
+            //Прыжок в беге
             else if (Input.GetKeyDown(KeyCode.Space) && princeAction == PrinceAction.RUNNING)
             {
                 jumpForceX = 0.5f;
@@ -83,14 +97,37 @@ public class FPSInput : MonoBehaviour
             yAxis -= gravityJump * Time.deltaTime;
         }
 
-        var dir = new Vector3(-Input.GetAxis("Horizontal") * jumpForceX, yAxis, 0f);
-        characterController.Move(dir * speed * Time.deltaTime);
+        //if (isClimbing == true && _animator.GetCurrentAnimatorStateInfo(0).IsName("Idle"))
+        //{
+        //    isClimbing = false;
+        //    _animator.
+        //}
 
+        Debug.Log(_animator.GetCurrentAnimatorStateInfo(0).IsName("Idle") + " Idle and " + "IS CLIMBING " + isClimbing);
+
+        //Забирается ли персонаж
+        if (isClimbing)
+        {
+            //var newPos = transform.position;
+            //newPos.y = 5f;
+            //newPos.x = 0.53f;
+            _animator.applyRootMotion = true;
+            characterController.enabled = false;
+            //transform.position = Vector3.Slerp(transform.position, newPos, 2f * Time.deltaTime);
+        }
+        else
+        {
+            characterController.enabled = true;
+            var dir = new Vector3(-Input.GetAxis("Horizontal") * jumpForceX, yAxis, 0f);
+            characterController.Move(dir * speed * Time.deltaTime);
+        }
     }
 
     // Update is called once per frame
     void Update()
     {
+        //Debug.Log("IS CLIMBING " + isClimbing);
+        //Debug.Log("ABLE TO CLIMB " + ableToClimb);
 
         if (Mathf.Abs(Input.GetAxis("Horizontal")) > 0)
         {
@@ -226,9 +263,6 @@ public class FPSInput : MonoBehaviour
         if (other.tag == "Floor")
         {
             Debug.Log("DABUDI DABUDAI");
-            //_animator.SetTrigger("Climb");
-            //Vector3 climbPos = transform.position;
-            //GetComponent<Rigidbody>().useGravity = false;
             var dir = new Vector3(0.2f, 5.44f, 0f);
             characterController.Move(dir);
         }
