@@ -62,19 +62,22 @@ public class FPSInput : MonoBehaviour
 
     private void FixedUpdate()
     {
+        bool thisFrame = false;
+
         if (characterController.isGrounded)
         {
             //Прыжок с места
             if (Input.GetKeyDown(KeyCode.Space) && princeAction == PrinceAction.IDLE)
             {
-                yAxis = jumpForceY * Time.deltaTime;
                 if (ableToClimb)
                 {
                     isClimbing = true;
+                    thisFrame = true;
                     _animator.SetTrigger("Climb");
                 }
                 else
                 {
+                    yAxis = jumpForceY * Time.deltaTime;
                     jumpForceX = 1f;
                     _animator.SetTrigger("Idle_Jumping");
                 }
@@ -103,7 +106,15 @@ public class FPSInput : MonoBehaviour
         //    _animator.
         //}
 
-        Debug.Log(_animator.GetCurrentAnimatorStateInfo(0).IsName("Idle") + " Idle and " + "IS CLIMBING " + isClimbing);
+        if (isClimbing == true)
+        {
+            if (thisFrame == false && _animator.GetCurrentAnimatorStateInfo(0).IsName("Idle"))
+            {
+                isClimbing = false;
+            }
+        }
+
+        Debug.Log(_animator.GetCurrentAnimatorStateInfo(0).IsName("Idle") + " Idle and " + "IS CLIMBING " + isClimbing + " thisFrame" + thisFrame);
 
         //Забирается ли персонаж
         if (isClimbing)
