@@ -129,6 +129,7 @@ public class FPSInput : MonoBehaviour
         else
         {
             characterController.enabled = true;
+            _animator.applyRootMotion = false;
             var dir = new Vector3(-Input.GetAxis("Horizontal") * jumpForceX, yAxis, 0f);
             characterController.Move(dir * speed * Time.deltaTime);
         }
@@ -188,7 +189,7 @@ public class FPSInput : MonoBehaviour
                 break;
 
             case PrinceAction.TURNING_180:
-
+                Turn180();
                 break;
 
         }
@@ -214,10 +215,12 @@ public class FPSInput : MonoBehaviour
         if (Input.GetAxis("Horizontal") > 0 && !isFacingRight)
         {
             Turn();
+            //princeAction = PrinceAction.TURNING_180;
         }
         else if (Input.GetAxis("Horizontal") < 0 && isFacingRight)
         {
             Turn();
+            //princeAction = PrinceAction.TURNING_180;
         }
 
         if (Input.GetKeyDown(KeyCode.Space))
@@ -238,28 +241,32 @@ public class FPSInput : MonoBehaviour
 
         if (Input.GetAxis("Horizontal") > 0 && !isFacingRight)
         {
-            Turn();
+            Turn180();
+            //princeAction = PrinceAction.TURNING_180;
         }
         else if (Input.GetAxis("Horizontal") < 0 && isFacingRight)
         {
-            Turn();
+            Turn180();
+            //princeAction = PrinceAction.TURNING_180;
         }
 
         princeAction = PrinceAction.RUNNING;
     }
 
-    private void Turn()
+    private void Turn180()
     {
 
-        if (m_Time_Idle > 3f)
+        if (m_Time_Idle > 0.5f)
         {
             m_Time_Running = 0;
+            //princeAction = PrinceAction.IDLE;
         }
 
         if (m_Time_Running > 0.3f)
         {
             _animator.SetTrigger("Turn");
             m_Time_Running = 0;
+            //princeAction = PrinceAction.RUNNING;
         }
 
         m_Time_Idle = 0;
@@ -267,6 +274,13 @@ public class FPSInput : MonoBehaviour
         isFacingRight = !isFacingRight;
         _animator.transform.Rotate(0, 180, 0);
 
+        
+    }
+
+    private void Turn()
+    {
+        isFacingRight = !isFacingRight;
+        _animator.transform.Rotate(0, 180, 0);
     }
 
     private void OnTriggerEnter(Collider other)
