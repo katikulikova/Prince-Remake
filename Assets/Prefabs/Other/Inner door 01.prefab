@@ -13,6 +13,7 @@ GameObject:
   - component: {fileID: 1141499565998477963}
   - component: {fileID: 1141499565998477960}
   - component: {fileID: 1141499565998477961}
+  - component: {fileID: 8847026691647569556}
   - component: {fileID: 1141499565998477958}
   m_Layer: 0
   m_Name: Inner door 01
@@ -380,6 +381,18 @@ MonoBehaviour:
   m_selectedFaces: 
   m_SelectedEdges: []
   m_selectedTriangles: 
+--- !u!114 &8847026691647569556
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1141499565998477959}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: f3628bee7ca78084592e17ca23f41061, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
 --- !u!64 &1141499565998477958
 MeshCollider:
   m_ObjectHideFlags: 0

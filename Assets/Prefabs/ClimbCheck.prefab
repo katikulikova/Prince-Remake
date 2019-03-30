@@ -10,6 +10,7 @@ GameObject:
   m_Component:
   - component: {fileID: 8573892701008175264}
   - component: {fileID: 8573892701008175271}
+  - component: {fileID: 8807238092605436745}
   m_Layer: 0
   m_Name: ClimbCheck
   m_TagString: ClimbCheck
@@ -44,3 +45,15 @@ BoxCollider:
   serializedVersion: 2
   m_Size: {x: 0.39328438, y: 0.1473525, z: 3.1929705}
   m_Center: {x: 0.3065298, y: -0.023676254, z: 0.041566968}
+--- !u!114 &8807238092605436745
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 8573892701008175265}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 5875015eb00b5834da6ee99d47d67f62, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 

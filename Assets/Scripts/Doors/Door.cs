@@ -13,6 +13,7 @@ public enum DoorState
 public class Door : MonoBehaviour
 {
     public DoorState doorState;
+    public FPSInput fPSInput;
     public float doorHeight;
     private float speed = 2;
     float visibleDoorPart;
@@ -93,6 +94,10 @@ public class Door : MonoBehaviour
                 newPos.y -= moveBy;
 
                 transform.localPosition = newPos;
+
+                break;
+
+            case DoorState.CLOSED:
 
                 break;
         }

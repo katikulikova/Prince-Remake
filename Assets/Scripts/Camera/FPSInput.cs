@@ -5,6 +5,7 @@ using UnityEngine;
 
 public enum PrinceAction
 {
+    NONE,
     IDLE,
     WALKING,
     RUNNING,
@@ -23,13 +24,41 @@ public enum PrinceAction
 
 public class FPSInput : MonoBehaviour
 {
-    public PrinceAction princeAction;
+    private PrinceAction m_princeAction = PrinceAction.NONE; // for logging of 1st IDLE, need .NONE
+    // these public vars are for watching state of prince in Inspector during game debug
+    public string dbg_princeAction = "";
+    public bool dbg_IsGrounded = false;
+    public float m_yAxis_VerticalSpeed = -1.0f;
 
-    public float speed = 6.0f;
-    private float jumpForceY = 55.0f;
-    private float jumpForceX = 1.0f;
-    private float gravityJump = 6.0f;
-    private float yAxis = -1.0f;
+    private PrinceAction princeAction
+    {
+        get
+        {
+            return m_princeAction;
+        }
+        set
+        {
+            if (m_princeAction != value)
+            {
+                dbg_princeAction = value.ToString();
+                m_princeAction = value;
+                // only log changes in Prince state
+                Debug.Log("m_princeAction = " + value.ToString());
+            }
+        }
+    }
+
+    public float m_SecondsBeforeTurn180 = 0.3f;
+    public float m_Turn180_AnimStart = 0.20f;
+    public float m_SpeedDuringTurn180 = 1f;
+    /// <summary>
+    /// general multiplier for Input.GetAxis(..) for both Hor & Vertical speeds
+    /// </summary>
+    public float m_Speed_Multiplier = 6.0f;
+
+    private float c_JumpSpeedY = 2f; //55.0f;
+    private float c_gravityJump = 6.0f;
+
 
     private bool isFacingRight = true;
 
@@ -37,12 +66,9 @@ public class FPSInput : MonoBehaviour
     private Animator _animator;
     private Transform _transform;
 
-    //timer
-    private bool isMoving;
     private float m_Time_Running = 0f;
     private float m_Time_Idle = 0f;
 
-    //climbing
     public bool ableToClimb;
     public bool isClimbing;
 
@@ -59,52 +85,110 @@ public class FPSInput : MonoBehaviour
         _transform = GetComponent<Transform>();
         princeAction = PrinceAction.IDLE;
     }
+    private Int64 m_InputTick = 1000;
+
+    // these variables are set in FixedUpdate. Discrete is for strict state control. Analog is for precise Speed and for Blend Trees in animator.
+    private float m_DiscreteInput_X = 0;
+    private float m_AnalogInput_X = 0;
 
     private void FixedUpdate()
     {
         bool thisFrame = false;
 
-        if (characterController.isGrounded)
+        float loc_jumpSpeedMultiplier = 1.0f;
+        float loc_DeltaTime = Time.fixedDeltaTime;
+
+        // NEVER USE Input.GetAxis, this is smooth-filtered value from GetAxisRaw
+        // Don't use Input.GetAxis in outside code, use m_DiscreteInput_*/m_AnalogInput_*
+        m_AnalogInput_X = Input.GetAxisRaw("Horizontal");
+
+
+
+        m_InputTick++;
+        #region BEGIN RECALCULATE princeAction based on Input/Time elapsed
+        if (princeAction == PrinceAction.TURNING_180)
         {
-            //Прыжок с места
-            if (Input.GetKeyDown(KeyCode.Space) && princeAction == PrinceAction.IDLE)
+            var loc_Animator_State_Info = _animator.GetCurrentAnimatorStateInfo(0);
+            bool loc_Is_180_Turn_Being_Done = loc_Animator_State_Info.IsName("180");
+            // Debug.Log("Current State is TURNING_180. Is Animator State 180? " + loc_Is_180_Turn_Being_Done.ToString());
+            if (!loc_Is_180_Turn_Being_Done)
             {
-                if (ableToClimb)
-                {
-                    isClimbing = true;
-                    thisFrame = true;
-                    _animator.SetTrigger("Climb");
-                }
-                else
-                {
-                    yAxis = jumpForceY * Time.deltaTime;
-                    jumpForceX = 1f;
-                    _animator.SetTrigger("Idle_Jumping");
-                }
-            }
-            //Прыжок в беге
-            else if (Input.GetKeyDown(KeyCode.Space) && princeAction == PrinceAction.RUNNING)
-            {
-                jumpForceX = 0.5f;
-                yAxis = (jumpForceY + 2) * Time.deltaTime;
-                _animator.SetTrigger("Jumping");
+                _animator.transform.Rotate(0, 180, 0);
+                // finished => go to default state
+                princeAction = PrinceAction.IDLE;
             }
             else
             {
-                jumpForceX = 1f;
-                yAxis = -1f;
+                // OVERRIDE Input
+                // give a bit slower speed in same direction, TODO: ideally it should be descreasing speed
+                m_AnalogInput_X = (isFacingRight ? -1 : 1) * m_SpeedDuringTurn180;
+            }
+        }
+        m_DiscreteInput_X = Math.Abs(m_AnalogInput_X) > 0 ? Math.Sign(m_AnalogInput_X) : 0;
+
+        if (princeAction == PrinceAction.RUNNING || princeAction == PrinceAction.IDLE)
+        {
+            if (Mathf.Abs(m_DiscreteInput_X) > 0)
+            {
+                princeAction = PrinceAction.RUNNING;
+            }
+            else
+            {
+                princeAction = PrinceAction.IDLE;
+            }
+        }
+
+        #endregion
+        //Debug.Log(m_InputTick.ToString() + " Input.Horizontal A,D = " + m_AnalogInput_X.ToString() + ", " + m_DiscreteInput_X.ToString());
+
+        // to get correct value of .isGrounded in FixedUpdate, we must issue .Move, see .isGrounded documentation
+
+        if (isClimbing)
+        {
+            _animator.applyRootMotion = true;
+            characterController.enabled = false;
+        }
+        else
+        {
+            characterController.SimpleMove(new Vector3(0, 0, 0));
+            dbg_IsGrounded = characterController.isGrounded;
+        }
+
+        if (characterController.isGrounded)
+        {
+            if (Input.GetKey(KeyCode.Space) && princeAction == PrinceAction.IDLE)
+            {
+                if (ableToClimb && !isClimbing)
+                {
+                    isClimbing = true;
+                    thisFrame = true;
+                    Logged_SetTrigger("Climb", " Check if repeats twice");
+                    //_animator.SetTrigger("Climb");
+                }
+                else
+                {
+                    m_yAxis_VerticalSpeed = c_JumpSpeedY;
+                    Logged_SetTrigger("Idle_Jumping", "Space in .IDLE");
+                }
+            }
+            else if (Input.GetKey(KeyCode.Space) && princeAction == PrinceAction.RUNNING)
+            {
+                loc_jumpSpeedMultiplier = 1.5f;
+                m_yAxis_VerticalSpeed = c_JumpSpeedY;
+                Logged_SetTrigger("Jumping", "Space in .RUNNING");
+            }
+            else
+            {
+                m_yAxis_VerticalSpeed = -1f;
             }
         }
         else
         {
-            yAxis -= gravityJump * Time.deltaTime;
+            m_yAxis_VerticalSpeed -= c_gravityJump * loc_DeltaTime;
         }
+        float loc_xAxis_HorizontalSpeed = -m_AnalogInput_X;
 
-        //if (isClimbing == true && _animator.GetCurrentAnimatorStateInfo(0).IsName("Idle"))
-        //{
-        //    isClimbing = false;
-        //    _animator.
-        //}
+        m_Speeds_For_Move_in_Update = new Vector3(loc_xAxis_HorizontalSpeed * loc_jumpSpeedMultiplier, m_yAxis_VerticalSpeed, 0f);
 
         if (isClimbing == true)
         {
@@ -114,51 +198,56 @@ public class FPSInput : MonoBehaviour
             }
         }
 
-        Debug.Log(_animator.GetCurrentAnimatorStateInfo(0).IsName("Idle") + " Idle and " + "IS CLIMBING " + isClimbing + " thisFrame" + thisFrame);
+    }
+    public Vector3 m_Speeds_For_Move_in_Update = new Vector3(0, 0, 0);
 
-        //Забирается ли персонаж
-        if (isClimbing)
+    /// <summary>
+    /// called from Idle/Running, moves char according to m_speed
+    /// </summary>
+    private void UpdateOneTick_Turn_If_Needed()
+    {
+        if (m_DiscreteInput_X > 0 && !isFacingRight)
         {
-            //var newPos = transform.position;
-            //newPos.y = 5f;
-            //newPos.x = 0.53f;
-            _animator.applyRootMotion = true;
-            characterController.enabled = false;
-            //transform.position = Vector3.Slerp(transform.position, newPos, 2f * Time.deltaTime);
+            Turn();
         }
-        else
+        else if (m_DiscreteInput_X < 0 && isFacingRight)
         {
-            characterController.enabled = true;
-            _animator.applyRootMotion = false;
-            var dir = new Vector3(-Input.GetAxis("Horizontal") * jumpForceX, yAxis, 0f);
-            characterController.Move(dir * speed * Time.deltaTime);
+            Turn();
         }
     }
 
     // Update is called once per frame
     void Update()
     {
-        //Debug.Log("IS CLIMBING " + isClimbing);
-        //Debug.Log("ABLE TO CLIMB " + ableToClimb);
+        // MAIN RULE: FixedUpdate() changes state variables. Update() only reflects them in UI,Animator,etc for smooth movement
+        // FixedUpdate is "smart" place. Update is "smooth game" place.
 
-        if (Mathf.Abs(Input.GetAxis("Horizontal")) > 0)
+        // do .Move in Update() for smooth visuals
+        if (isClimbing)
         {
-            princeAction = PrinceAction.RUNNING;
+            _animator.applyRootMotion = true;
+            characterController.enabled = false;
         }
         else
         {
-            princeAction = PrinceAction.IDLE;
+            characterController.enabled = true;
+            _animator.applyRootMotion = false;
+            var loc_DeltaTime = Time.deltaTime;
+            characterController.Move(m_Speeds_For_Move_in_Update * m_Speed_Multiplier * loc_DeltaTime);
         }
+
+        // our .IDLE and .RUNNING states correspond to Blend-tree "Idle" state of Animator
+        // so keep Animator informed
+        _animator.SetFloat("InputX", m_AnalogInput_X);
 
         switch (princeAction)
         {
             case PrinceAction.IDLE:
-                Idle();
+                UpdateOneTick_Turn_If_Needed();
                 break;
 
             case PrinceAction.RUNNING:
-                Run();
-                _animator.SetFloat("InputX", Input.GetAxis("Horizontal"));
+                UpdateOneTick_Turn_If_Needed();
                 break;
 
             case PrinceAction.IDLE_JUMPING:
@@ -189,109 +278,82 @@ public class FPSInput : MonoBehaviour
                 break;
 
             case PrinceAction.TURNING_180:
-                Turn180();
+
                 break;
 
         }
 
-        //timer
-        if (Mathf.Abs(Input.GetAxis("Horizontal")) > 0)
+        if (princeAction == PrinceAction.RUNNING)
         {
-            m_Time_Running += Time.deltaTime;
+            m_Time_Idle = 0;
+            Logged_SetTimeRunning(m_Time_Running + Time.deltaTime, "Update");
         }
 
-        //timer
-        if (Mathf.Abs(Input.GetAxis("Horizontal")) == 0)
+        if (princeAction == PrinceAction.IDLE)
         {
             m_Time_Idle += Time.deltaTime;
+            // Standing X seconds => prince was stopped, clear running-time to avoid 180-degree turn animation
+            if (m_Time_Idle > 0.2f)
+            {
+                Logged_SetTimeRunning(0, "Idle_X_sec");
+            }
         }
     }
 
-    private void Idle()
+    private void Logged_SetTrigger(string triggerName, string _Reason)
     {
-        Vector3 direction = new Vector3(-Input.GetAxis("Horizontal"), yAxis, 0f);
-        characterController.Move(direction * speed * Time.deltaTime);
-
-        if (Input.GetAxis("Horizontal") > 0 && !isFacingRight)
-        {
-            Turn();
-            //princeAction = PrinceAction.TURNING_180;
-        }
-        else if (Input.GetAxis("Horizontal") < 0 && isFacingRight)
-        {
-            Turn();
-            //princeAction = PrinceAction.TURNING_180;
-        }
-
-        if (Input.GetKeyDown(KeyCode.Space))
-        {
-            JumpIdle();
-        }
+        Debug.Log("Set Trigger " + triggerName + " by " + _Reason);
+        _animator.SetTrigger(triggerName);
     }
-
-    private void JumpIdle()
+    private void Logged_SetTimeRunning(float newTimeRunning, string _Reason)
     {
-        princeAction = PrinceAction.IDLE_JUMPING;
+        if (m_Time_Running != newTimeRunning)
+        {
+            m_Time_Running = newTimeRunning;
+            // Debug.Log("m_Time_Running = " + newTimeRunning.ToString() + " by " + _Reason);
+        }
     }
 
-    private void Run()
-    {
-        Vector3 direction = new Vector3(-Input.GetAxis("Horizontal"), yAxis, 0f);
-        characterController.Move(direction * speed * Time.deltaTime);
-
-        if (Input.GetAxis("Horizontal") > 0 && !isFacingRight)
-        {
-            Turn180();
-            //princeAction = PrinceAction.TURNING_180;
-        }
-        else if (Input.GetAxis("Horizontal") < 0 && isFacingRight)
-        {
-            Turn180();
-            //princeAction = PrinceAction.TURNING_180;
-        }
-
-        princeAction = PrinceAction.RUNNING;
-    }
-
-    private void Turn180()
-    {
-
-        if (m_Time_Idle > 0.5f)
-        {
-            m_Time_Running = 0;
-            //princeAction = PrinceAction.IDLE;
-        }
-
-        if (m_Time_Running > 0.3f)
-        {
-            _animator.SetTrigger("Turn");
-            m_Time_Running = 0;
-            //princeAction = PrinceAction.RUNNING;
-        }
-
-        m_Time_Idle = 0;
-
-        isFacingRight = !isFacingRight;
-        _animator.transform.Rotate(0, 180, 0);
-
-        
-    }
 
     private void Turn()
     {
+        m_Time_Idle = 0;
+
+        // Running for X seconds => run 180-degree animation. Why Trigger called not Turn180???
+        if (m_Time_Running > m_SecondsBeforeTurn180)
+        {
+            //Logged_SetTrigger("Turn180", "Turn after running some time");
+            _animator.Play("180", 0, m_Turn180_AnimStart);
+            princeAction = PrinceAction.TURNING_180;
+            isFacingRight = !isFacingRight;
+            return;
+        }
+        Logged_SetTimeRunning(0, "Any Turn");
+
+
         isFacingRight = !isFacingRight;
         _animator.transform.Rotate(0, 180, 0);
+
+    }
+
+    private void Climb()
+    {
+        _animator.applyRootMotion = true;
+        characterController.enabled = false;
     }
 
     private void OnTriggerEnter(Collider other)
     {
         if (other.tag == "Floor")
         {
-            Debug.Log("DABUDI DABUDAI");
-            var dir = new Vector3(0.2f, 5.44f, 0f);
-            characterController.Move(dir);
+            Debug.Log("OnTriggerEnter other.Tag = Floor");
+
+            //Logged_SetTrigger("Climb", "Floor Touched");
+            //Vector3 climbPos = transform.position;
+            //GetComponent<Rigidbody>().useGravity = false;
+            //var dir = new Vector3(0.2f, 5.44f, 0f);
+            //characterController.Move(dir);
         }
     }
 
 }
-
